@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ROCK Meeting Minutes Generator</title>
+<style>
+  :root {
+    --accent: #2c5f8a;
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --border: #d9dfe4;
+    --text: #22303c;
+    --muted: #667685;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 24px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-top: 0; margin-bottom: 24px; font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    font-size: 15px;
+    margin: 0 0 14px 0;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 44px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .item-block {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: #fafbfc;
+    position: relative;
+  }
+  .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .item-header strong { font-size: 13px; }
+  .small-btn {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .small-btn:hover { background: #f0f2f4; }
+  .remove-btn { color: #b23a3a; border-color: #e6c3c3; }
+  .add-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .add-btn:hover { opacity: 0.9; }
+  .action-line { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .action-line input { flex: 1; }
+  .action-line .small-btn { flex-shrink: 0; }
+  .generate-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding: 14px 0;
+    text-align: center;
+  }
+  #generateBtn {
+    background: #1f7a4d;
+    color: #fff;
+    border: none;
+    padding: 13px 28px;
+    font-size: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  #generateBtn:hover { opacity: 0.92; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .exp-row { display: grid; grid-template-columns: 1fr 100px 90px 32px; gap: 8px; align-items: center; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ROCK Setting Meeting Minutes Generator</h1>
+  <p class="subtitle">Fill in the fields below, then click Generate to download a Word document formatted like your standard meeting minutes.</p>
+
+  <!-- META -->
+  <div class="card">
+    <h2>Meeting Info</h2>
+    <label>Meeting Title</label>
+    <input type="text" id="metaTitle" value="Service Desk – Q3 2026 Rock Setting Meeting 7/22/2026">
+    <div class="row">
+      <div>
+        <label>Time Objective</label>
+        <input type="text" id="metaTimeObj" value="1.5 hours">
+      </div>
+      <div>
+        <label>Actual Time (auto from timer)</label>
+        <input type="text" id="metaTimeActual" readonly style="background:#f0f2f4;color:var(--muted);" value="0.00">
+      </div>
+      <div>
+        <label>Average Rating (auto-calculated)</label>
+        <input type="text" id="metaAvgRating" readonly style="background:#f0f2f4;color:var(--muted);">
+      </div>
+    </div>
+    <div class="hint">Average Rating pulls automatically from the ratings entered in the Expectations and Rating section below.</div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="card">
+    <h2>Meeting Timer</h2>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div id="timerDisplay" style="font-size:30px;font-weight:bold;font-variant-numeric:tabular-nums;color:var(--accent);">00:00:00</div>
+      <button class="small-btn" id="timerStartBtn" onclick="toggleTimer()" style="font-size:13px;padding:7px 16px;">Start</button>
+      <button class="small-btn" onclick="resetTimer()" style="font-size:13px;padding:7px 16px;">Reset</button>
+    </div>
+    <div class="hint">While running, this updates "Actual Time" above automatically (in decimal hours).</div>
+  </div>
+
+  <!-- ROCK COMPLETION -->
+  <div class="card">
+    <h2>ROCK Completion — Carried Over from Previous Quarter</h2>
+    <div style="margin-bottom:12px;">
+      <button class="small-btn" onclick="document.getElementById('importRocksFile').click()">⬆ Import ROCKs from Last Meeting's Export</button>
+      <input type="file" id="importRocksFile" accept="application/json" style="display:none;" onchange="importRocks(event)">
+      <div class="hint">Upload the rocks_for_next_meeting.json file you exported at the end of the previous meeting to pre-fill this list.</div>
+    </div>
+    <div id="rockList"></div>
+    <button class="add-btn" onclick="addRock()">+ Add Rock</button>
+    <label style="margin-top:16px;">Company Rock Completion (this quarter, %)</label>
+    <input type="text" id="companyRockPct" value="80%">
+    <label>Line label (e.g. "Q4 Company Rock Completion:")</label>
+    <input type="text" id="companyRockLabel" value="Q4 Company Rock Completion:">
+    <label>"Reviewed Personal Rocks" line (e.g. "Reviewed Personal Rocks Q2")</label>
+    <input type="text" id="reviewedLine" value="Reviewed Personal Rocks Q2">
+  </div>
+
+  <!-- PEOPLE -->
+  <div class="card">
+    <h2>Personal Rock Reviews</h2>
+    <div id="peopleList"></div>
+    <button class="add-btn" onclick="addPerson()">+ Add Team Member</button>
+  </div>
+
+  <!-- IDS NOW -->
+  <div class="card">
+    <h2>IDS Now</h2>
+    <label>Items (one per line, leave blank if none)</label>
+    <textarea id="idsNow" rows="3"></textarea>
+  </div>
+
+  <!-- TODOS -->
+  <div class="card">
+    <h2>To-Do Items (meeting-level)</h2>
+    <div id="todoList"></div>
+    <button class="add-btn" onclick="addTodo()">+ Add To-Do</button>
+  </div>
+
+  <!-- EXPECTATIONS -->
+  <div class="card">
+    <h2>Expectations and Rating</h2>
+    <div class="exp-row" style="font-size:11px;color:var(--muted);">
+      <div>Name</div><div>Expectations Met?</div><div>Rating</div><div></div>
+    </div>
+    <div id="expList"></div>
+    <button class="add-btn" onclick="addExp()">+ Add Row</button>
+  </div>
+
+  <div class="generate-bar">
+    <button id="generateBtn" onclick="generateDoc()">⬇ Generate Word Document</button>
+    <button class="small-btn" style="padding:12px 20px;font-size:13px;margin-left:8px;" onclick="exportRocksForNextMeeting()">⬇ Export ROCKs for Next Meeting</button>
+    <div class="hint">Generate downloads the meeting minutes. Export ROCKs saves a small file of everything checked "Carry forward as a new ROCK" — upload it next time via Import at the top of the ROCK Completion section.</div>
+  </div>
+</div>
+
+<script>
+let rockCount = 0, personCount = 0, todoCount = 0, expCount = 0;
+
+function el(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+}
+
+/* ---------- ROCKS ---------- */
+function addRock(data) {
+  data = data || {};
+  const id = 'rock' + (rockCount++);
+  const node = el(`
+    <div class="item-block" id="${id}">
+      <div class="item-header">
+        <strong>Rock</strong>
+        <button class="small-btn remove-btn" onclick="document.getElementById('${id}').remove()">Remove</button>
+      </div>
+      <div class="row">
+        <div style="flex:0 0 70px;">
+          <label>Initials</label>
+          <input type="text" class="rock-initials" placeholder="RN" value="${data.initials||''}">
+        </div>
+        <div>
+          <label>Description</label>
+          <input type="text" class="rock-desc" placeholder="Update Remote Support Access in ITGlue" value="${data.desc||''}">
+        </div>
+        <div style="flex:0 0 130px;">
+          <label>Status</label>
+          <select class="rock-status" onchange="toggleFollowup('${id}')">
+            <option value="DONE" ${data.status==='DONE'?'selected':''}>DONE</option>
+            <option value="NOT DONE" ${data.status==='NOT DONE'?'selected':''}>NOT DONE</option>
+          </select>
+        </div>
+      </div>
+      <div class="rock-followup-wrap" style="display:${data.status==='NOT DONE'?'block':'none'};">
+        <label>New Rock (follow-up line, e.g. "ROCK #1 (MS) Schedule 2 x FF Trainings")</label>
+        <input type="text" class="rock-followup" value="${data.followup||''}">
+      </div>
+    </div>
+  `);
+  document.getElementById('rockList').appendChild(node);
+}
+function toggleFollowup(id) {
+  const block = document.getElementById(id);
+  const status = block.querySelector('.rock-status').value;
+  block.querySelector('.rock-followup-wrap').style.display = status === 'NOT DONE' ? 'block' : 'none';
+}
+
+/* ---------- PEOPLE ---------- */
+function addPerson(data) {
+  data = data || {};
+  const id = 'person' + (personCount++);
+  const node = el(`
+    <div class="item-block" id="${id}">
+      <div class="item-header">
+        <strong>Team Member</strong>
+        <button class="small-btn remove-btn" onclick="document.getElementById('${id}').remove()">Remove</button>
+      </div>
+      <label>Name</label>
+      <input type="text" class="p-name" value="${data.name||''}">
+      <div class="row">
+        <div>
+          <label>Good News — Personal</label>
+          <input type="text" class="p-goodPersonal" value="${data.goodPersonal||''}">
+        </div>
+        <div>
+          <label>Good News — Professional</label>
+          <input type="text" class="p-goodProf" value="${data.goodProf||''}">
+        </div>
+      </div>
+      <label>Working (one per line)</label>
+      <textarea class="p-working" rows="2">${data.working||''}</textarea>
+      <label>Not Working (one per line)</label>
+      <textarea class="p-notWorking" rows="2">${data.notWorking||''}</textarea>
+      <label>Expectations</label>
+      <input type="text" class="p-expect" value="${data.expect||''}">
+      <label>Personal Rock (this quarter)</label>
+      <input type="text" class="p-rock" value="${data.rock||''}">
+      <label>Action Items</label>
+      <div class="p-actions"></div>
+      <button class="small-btn" onclick="addActionLine(this)">+ Add Action Item</button>
+    </div>
+  `);
+  document.getElementById('peopleList').appendChild(node);
+  const actions = data.actions || [''];
+  actions.forEach(a => addActionLineTo(node.querySelector('.p-actions'), a));
+}
+function addActionLine(btn) {
+  const wrap = btn.previousElementSibling;
+  addActionLineTo(wrap, '');
+}
+function addActionLineTo(wrap, value, isRock, rockInitials, rockDesc) {
+  const line = el(`
+    <div class="action-item-wrap" style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;background:#fff;">
+      <div class="action-line" style="margin-bottom:0;">
+        <input type="text" class="p-action-item" placeholder='e.g. ROCK #2 (CS): Scorecard: 4 weeks with < 10 7 day old SD tickets' value="${(value||'').replace(/"/g,'&quot;')}">
+        <button class="small-btn remove-btn" onclick="this.closest('.action-item-wrap').remove()">×</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0 0 0;cursor:pointer;">
+        <input type="checkbox" class="p-action-isrock" style="width:auto;" ${isRock?'checked':''} onchange="toggleRockFields(this)">
+        Carry forward as a new ROCK for next meeting
+      </label>
+      <div class="rock-carry-fields" style="display:${isRock?'flex':'none'};gap:8px;margin-top:6px;">
+        <input type="text" class="p-action-rock-initials" placeholder="Initials (e.g. MS)" style="flex:0 0 120px;" value="${rockInitials||''}">
+        <input type="text" class="p-action-rock-desc" placeholder="Rock description for next meeting" value="${rockDesc||''}">
+      </div>
+    </div>
+  `);
+  wrap.appendChild(line);
+}
+function toggleRockFields(checkbox) {
+  const fields = checkbox.closest('.action-item-wrap').querySelector('.rock-carry-fields');
+  fields.style.display = checkbox.checked ? 'flex' : 'none';
+}
+
+/* ---------- TODOS ---------- */
+function addTodo(value) {
+  const id = 'todo' + (todoCount++);
+  const node = el(`
+    <div class="action-line" id="${id}">
+      <input type="text" class="todo-item" placeholder='e.g. To Do (GT): Communicate meeting minutes from Rock Setting to team' value="${(value||'').replace(/"/g,'&quot;')}">
+      <button class="small-btn remove-btn" onclick="document.getElementById('${id}').remove()">×</button>
+    </div>
+  `);
+  document.getElementById('todoList').appendChild(node);
+}
+
+/* ---------- EXPECTATIONS ---------- */
+function addExp(data) {
+  data = data || {};
+  const id = 'exp' + (expCount++);
+  const node = el(`
+    <div class="exp-row" id="${id}">
+      <input type="text" class="exp-name" placeholder="Name" value="${data.name||''}">
+      <select class="exp-met">
+        <option value="Yes" ${data.met==='Yes'?'selected':''}>Yes</option>
+        <option value="No" ${data.met==='No'?'selected':''}>No</option>
+      </select>
+      <input type="text" class="exp-rating" placeholder="10" value="${data.rating||''}">
+      <button class="small-btn remove-btn" onclick="document.getElementById('${id}').remove()">×</button>
+    </div>
+  `);
+  document.getElementById('expList').appendChild(node);
+}
+
+/* ---------- SEED WITH EXAMPLE DATA ---------- */
+function seed() {
+  addRock({initials:'RN', desc:'Update Remote Support Access in ITGlue', status:'DONE'});
+  addRock({initials:'JC', desc:'3 new KB per articles per L10 cycle', status:'DONE'});
+  addRock({initials:'GT', desc:'14 Day old tickets green 3 times per quarter', status:'DONE'});
+  addRock({initials:'MS', desc:'2 x FF trainings', status:'NOT DONE', followup:'ROCK #1 (MS) Schedule 2 x FF Trainings'});
+  addRock({initials:'CF', desc:'Update Email Security items (Security Section)', status:'DONE'});
+
+  addPerson({
+    name:'Grant',
+    goodPersonal:'Enjoying the deck/patio in June',
+    goodProf:'GM!!',
+    working:'New team members\nCall volume handling',
+    notWorking:'Ticket closure rate, ticket touch rate, tickets 7 days old\nChat support\nNeo ticket pushing triage too fast/incorrectly',
+    expect:'4-5 good rocks!',
+    rock:'Lose 5 lbs',
+    actions:['ROCK #2 (CS): Scorecard: 4 weeks with < 10 7 day old SD tickets']
+  });
+  addPerson({
+    name:'Roean',
+    goodPersonal:'Wife wants to become a gamer',
+    goodProf:'Annual review from Scaled',
+    working:'Neo onboarding new users',
+    notWorking:'Tickets not touched, clients call on an existing ticket already several days old and not touched',
+    expect:'Goal/Rock to resolve Neo issues',
+    rock:'Teach wife to be a gamer',
+    actions:['ROCK #3 (GT): Fix dashboard items for ticket closure rates','ROCK #4 (RN): Scorecard: 6x with 0 SD tickets not touched in 3 days']
+  });
+  addPerson({
+    name:'Jared',
+    goodPersonal:'Good summer with family, friends and concerts',
+    goodProf:'Improved relationship with Shelly who previously gave a bad survey',
+    working:'Handling call volume even on busy days',
+    notWorking:'Neo documentation of user setups',
+    expect:'Rock to address Neo issues',
+    rock:"Signed up for another triathlon, beat last year's time",
+    actions:['To Do (MG): Train team on setting up client user doc for Neo\'s benefit','ROCK #5 (JC): Update 20 client user setup documentation']
+  });
+  addPerson({
+    name:'Martin',
+    goodPersonal:'Fixing leaky roof in multiple places, learned to be handy around the house',
+    goodProf:'Maintained an improved utilization rate for a month',
+    working:'Teamwork across SD and Field teams\nNeo automation is great especially user setups',
+    notWorking:'Neo/Thread: touches tickets 3-4 days old and sends a message to user, sometimes Neo assigns reboot tickets for same client to multiple team members\nNotification of escalation resource changes',
+    expect:'Escalation resource issue resolved',
+    rock:'Veeam university training, have CoPilot help form a training plan',
+    actions:['To Do (CF): Investigate whether Neo is responding to users too much, eg. Waiting client and create','To Do (MG): Fix Neo reboot tickets for same client assigned to multiple consultants']
+  });
+  addPerson({
+    name:'Megan',
+    goodPersonal:'Going to Kentucky for a family reunion',
+    goodProf:'More onsites and getting to know clients more',
+    working:"Worked hard with Zach on building out Neo's automation",
+    notWorking:'Neo and monitoring tickets, batch scheduling eg. 6 Acromag tickets',
+    expect:'Good plan of action items for Neo issues, without breaking what\'s working',
+    rock:'Gym 1x per week',
+    actions:['L10 Issue (MG): How to handle monitoring tickets','To Do (MG): Investigate Neo, too aggressively assign "batch tickets", eg. if someone has tickets for a client in their queue, Neo gives lots more for the same client']
+  });
+  addPerson({
+    name:'Caleb',
+    goodPersonal:'Cherry whiskey at the Lavender festival',
+    goodProf:'Down to 15 tickets',
+    working:'Call volume handling, 14 day old tickets has not been in the red',
+    notWorking:'Neo sets tickets to In Progress too quickly, instantaneously',
+    expect:'Get on the same page on Neo action plan',
+    rock:'Spend average of 10mins per day on making music',
+    actions:['L10 (CF): Investigate Neo: time in triage before assigning to consultants is short, and Neo sets status to In Progress which gives user false impression the ticket is being worked']
+  });
+  addPerson({
+    name:'Cyndi',
+    goodPersonal:'Past all weddings and been able to clean up house from paraphernalia',
+    goodProf:'L2 escalation work has been nerve wracking but good',
+    working:'Love how Neo empties triage',
+    notWorking:'More time detailing out escalation tickets, not enough info provided before sending to escalation',
+    expect:'Dialing in on Neo action items to improve it',
+    rock:'End of August international convention, prepare kids activity books to hand out as gifts',
+    actions:['L10 (CS) Discuss escalation process, with examples if trend continues where not enough info is provided in escalated tickets']
+  });
+
+  document.getElementById('idsNow').value = '';
+  addTodo('To Do (GT): Communicate meeting minutes from Rock Setting to team');
+
+  addExp({name:'Jared', met:'Yes', rating:'10'});
+  addExp({name:'Martin', met:'Yes', rating:'9.5'});
+  addExp({name:'Roean', met:'Yes', rating:'10'});
+  addExp({name:'Cyndi', met:'Yes', rating:'10'});
+  addExp({name:'Megan', met:'Yes', rating:'10'});
+  addExp({name:'Caleb', met:'Yes', rating:'10'});
+  addExp({name:'Grant', met:'Yes', rating:'9.5'});
+}
+seed();
+
+/* ---------- MEETING TIMER ---------- */
+let timerSeconds = 0, timerInterval = null, timerRunning = false;
+function formatTimer(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+}
+function updateActualTimeField() {
+  const hours = timerSeconds / 3600;
+  document.getElementById('metaTimeActual').value = hours.toFixed(2);
+}
+function tick() {
+  timerSeconds++;
+  document.getElementById('timerDisplay').textContent = formatTimer(timerSeconds);
+  updateActualTimeField();
+}
+function toggleTimer() {
+  const btn = document.getElementById('timerStartBtn');
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    btn.textContent = 'Start';
+  } else {
+    timerInterval = setInterval(tick, 1000);
+    timerRunning = true;
+    btn.textContent = 'Pause';
+  }
+}
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = 0;
+  document.getElementById('timerDisplay').textContent = '00:00:00';
+  document.getElementById('timerStartBtn').textContent = 'Start';
+  updateActualTimeField();
+}
+
+/* ---------- AUTO-CALCULATED AVERAGE RATING ---------- */
+function recalcAvgRating() {
+  const ratings = Array.from(document.querySelectorAll('.exp-rating'))
+    .map(i => parseFloat(i.value))
+    .filter(v => !isNaN(v));
+  const field = document.getElementById('metaAvgRating');
+  field.value = ratings.length
+    ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+    : '';
+}
+document.getElementById('expList').addEventListener('input', e => {
+  if (e.target.classList.contains('exp-rating')) recalcAvgRating();
+});
+new MutationObserver(recalcAvgRating).observe(document.getElementById('expList'), { childList: true });
+recalcAvgRating();
+
+/* ---------- ROCK CARRYOVER (export from this meeting / import into next) ---------- */
+function exportRocksForNextMeeting() {
+  const rocks = [];
+  document.querySelectorAll('.action-item-wrap').forEach(wrap => {
+    const checked = wrap.querySelector('.p-action-isrock').checked;
+    if (!checked) return;
+    const initials = wrap.querySelector('.p-action-rock-initials').value.trim();
+    const desc = wrap.querySelector('.p-action-rock-desc').value.trim();
+    if (initials || desc) rocks.push({ initials, desc });
+  });
+  if (!rocks.length) {
+    alert('No action items are checked as "Carry forward as a new ROCK" yet. Check the ones you want carried over, then export again.');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(rocks, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rocks_for_next_meeting.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function importRocks(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const rocks = JSON.parse(reader.result);
+      if (!Array.isArray(rocks)) throw new Error('Invalid file');
+      rocks.forEach(r => addRock({ initials: r.initials || '', desc: r.desc || '', status: 'NOT DONE' }));
+    } catch (err) {
+      alert('Could not read that file. Make sure it\'s a rocks_for_next_meeting.json export from this tool.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ---------- GENERATE WORD DOC ---------- */
+function esc(s) {
+  return (s||'').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function linesToParas(text, indent) {
+  return (text||'').split('\n').map(l=>l.trim()).filter(Boolean)
+    .map(l=>`<p style="margin:0 0 2px 0;margin-left:${indent}px;">${esc(l)}</p>`).join('');
+}
+
+function generateDoc() {
+  const title = document.getElementById('metaTitle').value;
+  const timeObj = document.getElementById('metaTimeObj').value;
+  const timeActual = document.getElementById('metaTimeActual').value;
+  const avgRating = document.getElementById('metaAvgRating').value;
+  const rockLabel = document.getElementById('companyRockLabel').value;
+  const rockPct = document.getElementById('companyRockPct').value;
+  const reviewedLine = document.getElementById('reviewedLine').value;
+
+  let html = '';
+  html += `<p style="text-align:center;font-weight:bold;font-size:14pt;margin-bottom:0;">${esc(title)}</p>`;
+  html += `<p style="text-align:center;margin:2px 0;">Time objective: ${esc(timeObj)} Actual time: ${esc(timeActual)}</p>`;
+  html += `<p style="text-align:center;margin:2px 0 16px 0;">Average rating: ${esc(avgRating)}</p>`;
+
+  html += `<p style="font-weight:bold;margin-bottom:4px;">ROCK Completion - Any to be carried over from last quarter?</p>`;
+  document.querySelectorAll('#rockList .item-block').forEach(block=>{
+    const initials = block.querySelector('.rock-initials').value;
+    const desc = block.querySelector('.rock-desc').value;
+    const status = block.querySelector('.rock-status').value;
+    html += `<p style="margin:0 0 2px 0;">(${esc(initials)}) - ${esc(desc)} - ${esc(status)}</p>`;
+    if (status === 'NOT DONE') {
+      const fu = block.querySelector('.rock-followup').value;
+      if (fu) html += `<p style="margin:0 0 2px 0;margin-left:24px;">${esc(fu)}</p>`;
+    }
+  });
+
+  html += `<p style="margin-top:12px;">${esc(rockLabel)} ${esc(rockPct)}</p>`;
+  html += `<p style="margin-top:6px;">${esc(reviewedLine)}</p>`;
+  html += `<p style="margin-top:12px;font-style:italic;">Best news 90 days? What is and isn't working? Expectations? Personal Rock for the quarter?</p>`;
+
+  document.querySelectorAll('#peopleList .item-block').forEach(block=>{
+    const name = block.querySelector('.p-name').value;
+    const goodPersonal = block.querySelector('.p-goodPersonal').value;
+    const goodProf = block.querySelector('.p-goodProf').value;
+    const working = block.querySelector('.p-working').value;
+    const notWorking = block.querySelector('.p-notWorking').value;
+    const expect = block.querySelector('.p-expect').value;
+    const rock = block.querySelector('.p-rock').value;
+    const actions = Array.from(block.querySelectorAll('.p-action-item')).map(i=>i.value).filter(Boolean);
+
+    html += `<p style="font-weight:bold;margin-top:14px;margin-bottom:2px;">${esc(name)}:</p>`;
+    html += `<p style="margin:0 0 2px 0;">- Good news: Personal: ${esc(goodPersonal)}, Professional: ${esc(goodProf)}</p>`;
+    html += `<p style="margin:0 0 2px 0;">- Working: ${esc(working.split('\n')[0]||'')}</p>`;
+    working.split('\n').slice(1).map(l=>l.trim()).filter(Boolean).forEach(l=>{
+      html += `<p style="margin:0 0 2px 0;margin-left:24px;">${esc(l)}</p>`;
+    });
+    html += `<p style="margin:0 0 2px 0;">- Not Working:</p>`;
+    notWorking.split('\n').map(l=>l.trim()).filter(Boolean).forEach(l=>{
+      html += `<p style="margin:0 0 2px 0;margin-left:24px;">o ${esc(l)}</p>`;
+    });
+
+    html += `<p style="margin:0 0 2px 0;">- Expectations: ${esc(expect)}</p>`;
+    html += `<p style="margin:0 0 2px 0;">- Personal Rock: ${esc(rock)}</p>`;
+    if (actions.length) {
+      html += `<p style="margin:0 0 2px 0;margin-left:24px;">o Action items:</p>`;
+      actions.forEach(a=>{
+        html += `<p style="margin:0 0 2px 0;margin-left:48px;">${esc(a)}</p>`;
+      });
+    }
+  });
+
+  const idsNow = document.getElementById('idsNow').value;
+  html += `<p style="font-weight:bold;margin-top:16px;margin-bottom:2px;">IDS Now:</p>`;
+  const idsLines = idsNow.split('\n').map(l=>l.trim()).filter(Boolean);
+  if (idsLines.length) {
+    idsLines.forEach(l=>{ html += `<p style="margin:0 0 2px 0;">- ${esc(l)}</p>`; });
+  } else {
+    html += `<p style="margin:0 0 2px 0;">- Anything?</p>`;
+  }
+
+  const todos = Array.from(document.querySelectorAll('.todo-item')).map(i=>i.value).filter(Boolean);
+  todos.forEach(t=>{ html += `<p style="margin:14px 0 2px 0;">${esc(t)}</p>`; });
+
+  html += `<p style="font-weight:bold;margin-top:16px;margin-bottom:4px;">Expectations and Rating:</p>`;
+  document.querySelectorAll('#expList .exp-row').forEach(row=>{
+    const name = row.querySelector('.exp-name').value;
+    const met = row.querySelector('.exp-met').value;
+    const rating = row.querySelector('.exp-rating').value;
+    if (name) html += `<p style="margin:0 0 2px 0;">${esc(name)}: ${esc(met)}, ${esc(rating)}</p>`;
+  });
+
+  const fullHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #000; }
+p { margin: 0 0 4px 0; }
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeTitle = (title || 'Rock_Meeting_Minutes').replace(/[^\w\- ]/g,'').trim().replace(/\s+/g,'_');
+  a.href = url;
+  a.download = safeTitle + '.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
