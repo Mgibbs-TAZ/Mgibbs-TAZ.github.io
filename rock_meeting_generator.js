@@ -145,95 +145,18 @@ function addExp(data) {
   document.getElementById('expList').appendChild(node);
 }
 
-/* ---------- SEED WITH EXAMPLE DATA ---------- */
+/* ---------- SEED WITH TEAM ROSTER (edit this list to add/remove people) ---------- */
+const TEAM_ROSTER = ['Grant', 'Roean', 'Jared', 'Martin', 'Megan', 'Caleb', 'Cyndi'];
+
 function seed() {
-  addRock({initials:'RN', desc:'Update Remote Support Access in ITGlue', status:'DONE'});
-  addRock({initials:'JC', desc:'3 new KB per articles per L10 cycle', status:'DONE'});
-  addRock({initials:'GT', desc:'14 Day old tickets green 3 times per quarter', status:'DONE'});
-  addRock({initials:'MS', desc:'2 x FF trainings', status:'NOT DONE', followup:'ROCK #1 (MS) Schedule 2 x FF Trainings'});
-  addRock({initials:'CF', desc:'Update Email Security items (Security Section)', status:'DONE'});
+  // Personal Rock Reviews — one blank card per team member, ready to fill in
+  TEAM_ROSTER.forEach(name => addPerson({ name }));
 
-  addPerson({
-    name:'Grant',
-    goodPersonal:'Enjoying the deck/patio in June',
-    goodProf:'GM!!',
-    working:'New team members\nCall volume handling',
-    notWorking:'Ticket closure rate, ticket touch rate, tickets 7 days old\nChat support\nNeo ticket pushing triage too fast/incorrectly',
-    expect:'4-5 good rocks!',
-    rock:'Lose 5 lbs',
-    actions:['ROCK #2 (CS): Scorecard: 4 weeks with < 10 7 day old SD tickets']
-  });
-  addPerson({
-    name:'Roean',
-    goodPersonal:'Wife wants to become a gamer',
-    goodProf:'Annual review from Scaled',
-    working:'Neo onboarding new users',
-    notWorking:'Tickets not touched, clients call on an existing ticket already several days old and not touched',
-    expect:'Goal/Rock to resolve Neo issues',
-    rock:'Teach wife to be a gamer',
-    actions:['ROCK #3 (GT): Fix dashboard items for ticket closure rates','ROCK #4 (RN): Scorecard: 6x with 0 SD tickets not touched in 3 days']
-  });
-  addPerson({
-    name:'Jared',
-    goodPersonal:'Good summer with family, friends and concerts',
-    goodProf:'Improved relationship with Shelly who previously gave a bad survey',
-    working:'Handling call volume even on busy days',
-    notWorking:'Neo documentation of user setups',
-    expect:'Rock to address Neo issues',
-    rock:"Signed up for another triathlon, beat last year's time",
-    actions:['To Do (MG): Train team on setting up client user doc for Neo\'s benefit','ROCK #5 (JC): Update 20 client user setup documentation']
-  });
-  addPerson({
-    name:'Martin',
-    goodPersonal:'Fixing leaky roof in multiple places, learned to be handy around the house',
-    goodProf:'Maintained an improved utilization rate for a month',
-    working:'Teamwork across SD and Field teams\nNeo automation is great especially user setups',
-    notWorking:'Neo/Thread: touches tickets 3-4 days old and sends a message to user, sometimes Neo assigns reboot tickets for same client to multiple team members\nNotification of escalation resource changes',
-    expect:'Escalation resource issue resolved',
-    rock:'Veeam university training, have CoPilot help form a training plan',
-    actions:['To Do (CF): Investigate whether Neo is responding to users too much, eg. Waiting client and create','To Do (MG): Fix Neo reboot tickets for same client assigned to multiple consultants']
-  });
-  addPerson({
-    name:'Megan',
-    goodPersonal:'Going to Kentucky for a family reunion',
-    goodProf:'More onsites and getting to know clients more',
-    working:"Worked hard with Zach on building out Neo's automation",
-    notWorking:'Neo and monitoring tickets, batch scheduling eg. 6 Acromag tickets',
-    expect:'Good plan of action items for Neo issues, without breaking what\'s working',
-    rock:'Gym 1x per week',
-    actions:['L10 Issue (MG): How to handle monitoring tickets','To Do (MG): Investigate Neo, too aggressively assign "batch tickets", eg. if someone has tickets for a client in their queue, Neo gives lots more for the same client']
-  });
-  addPerson({
-    name:'Caleb',
-    goodPersonal:'Cherry whiskey at the Lavender festival',
-    goodProf:'Down to 15 tickets',
-    working:'Call volume handling, 14 day old tickets has not been in the red',
-    notWorking:'Neo sets tickets to In Progress too quickly, instantaneously',
-    expect:'Get on the same page on Neo action plan',
-    rock:'Spend average of 10mins per day on making music',
-    actions:['L10 (CF): Investigate Neo: time in triage before assigning to consultants is short, and Neo sets status to In Progress which gives user false impression the ticket is being worked']
-  });
-  addPerson({
-    name:'Cyndi',
-    goodPersonal:'Past all weddings and been able to clean up house from paraphernalia',
-    goodProf:'L2 escalation work has been nerve wracking but good',
-    working:'Love how Neo empties triage',
-    notWorking:'More time detailing out escalation tickets, not enough info provided before sending to escalation',
-    expect:'Dialing in on Neo action items to improve it',
-    rock:'End of August international convention, prepare kids activity books to hand out as gifts',
-    actions:['L10 (CS) Discuss escalation process, with examples if trend continues where not enough info is provided in escalated tickets']
-  });
-
-  document.getElementById('idsNow').value = '';
+  // Recurring meeting-level to-do
   addTodo('To Do (GT): Communicate meeting minutes from Rock Setting to team');
 
-  addExp({name:'Jared', met:'Yes', rating:'10'});
-  addExp({name:'Martin', met:'Yes', rating:'9.5'});
-  addExp({name:'Roean', met:'Yes', rating:'10'});
-  addExp({name:'Cyndi', met:'Yes', rating:'10'});
-  addExp({name:'Megan', met:'Yes', rating:'10'});
-  addExp({name:'Caleb', met:'Yes', rating:'10'});
-  addExp({name:'Grant', met:'Yes', rating:'9.5'});
+  // Expectations and Rating — one blank row per team member
+  TEAM_ROSTER.forEach(name => addExp({ name }));
 }
 seed();
 
