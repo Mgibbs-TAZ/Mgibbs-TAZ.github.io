@@ -156,8 +156,9 @@
     </div>
     <div id="rockList"></div>
     <button class="add-btn" onclick="addRock()">+ Add Rock</button>
-    <label style="margin-top:16px;">Company Rock Completion (this quarter, %)</label>
-    <input type="text" id="companyRockPct" value="80%">
+    <label style="margin-top:16px;">Company Rock Completion (this quarter, auto-calculated)</label>
+    <input type="text" id="companyRockPct" readonly style="background:#f0f2f4;color:var(--muted);">
+    <div class="hint">Calculated from the DONE/NOT DONE status of the rocks listed above.</div>
     <label>Line label (e.g. "Q4 Company Rock Completion:")</label>
     <input type="text" id="companyRockLabel" value="Q4 Company Rock Completion:">
     <label>"Reviewed Personal Rocks" line (e.g. "Reviewed Personal Rocks Q2")</label>
@@ -250,6 +251,7 @@ function toggleFollowup(id) {
   const block = document.getElementById(id);
   const status = block.querySelector('.rock-status').value;
   block.querySelector('.rock-followup-wrap').style.display = status === 'NOT DONE' ? 'block' : 'none';
+  recalcRockPct();
 }
 
 /* ---------- PEOPLE ---------- */
@@ -478,6 +480,18 @@ function resetTimer() {
   document.getElementById('timerStartBtn').textContent = 'Start';
   updateActualTimeField();
 }
+
+/* ---------- AUTO-CALCULATED ROCK COMPLETION % ---------- */
+function recalcRockPct() {
+  const statuses = Array.from(document.querySelectorAll('.rock-status')).map(s => s.value);
+  const field = document.getElementById('companyRockPct');
+  if (!statuses.length) { field.value = ''; return; }
+  const done = statuses.filter(s => s === 'DONE').length;
+  const pct = Math.round((done / statuses.length) * 100);
+  field.value = pct + '%';
+}
+new MutationObserver(recalcRockPct).observe(document.getElementById('rockList'), { childList: true });
+recalcRockPct();
 
 /* ---------- AUTO-CALCULATED AVERAGE RATING ---------- */
 function recalcAvgRating() {
