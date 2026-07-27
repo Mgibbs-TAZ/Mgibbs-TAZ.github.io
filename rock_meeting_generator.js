@@ -280,7 +280,7 @@ function importRocks(event) {
 
 /* ---------- GITHUB SYNC (via backend proxy — no token needed here) ---------- */
 // ---- Set this once you've deployed rocks-sync-worker.js to Cloudflare ----
-const WORKER_URL = 'http://yellow-scene-192b.mgibbs-291.workers.dev/';
+const WORKER_URL = 'https://yellow-scene-192b.mgibbs-291.workers.dev';
 
 function ghSetStatus(msg, color) {
   const el = document.getElementById('ghStatus');
