@@ -278,6 +278,62 @@ function importRocks(event) {
   event.target.value = '';
 }
 
+/* ---------- GITHUB SYNC (via backend proxy — no token needed here) ---------- */
+// ---- Set this once you've deployed rocks-sync-worker.js to Cloudflare ----
+const WORKER_URL = 'https://rocks-sync-proxy.YOURSUBDOMAIN.workers.dev';
+
+function ghSetStatus(msg, color) {
+  const el = document.getElementById('ghStatus');
+  el.textContent = msg;
+  el.style.color = color || 'var(--muted)';
+}
+async function saveRocksToGitHub() {
+  const rocks = [];
+  document.querySelectorAll('.action-item-wrap').forEach(wrap => {
+    const checked = wrap.querySelector('.p-action-isrock').checked;
+    if (!checked) return;
+    const initials = wrap.querySelector('.p-action-rock-initials').value.trim();
+    const desc = wrap.querySelector('.p-action-rock-desc').value.trim();
+    if (initials || desc) rocks.push({ initials, desc });
+  });
+  if (!rocks.length) {
+    ghSetStatus('No action items are checked as "Carry forward as a new ROCK" yet.', '#b23a3a');
+    return;
+  }
+  ghSetStatus('Saving to GitHub…');
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rocks })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      ghSetStatus(`Saved ${data.count} rock(s) to GitHub.`, '#1f7a4d');
+    } else {
+      ghSetStatus(`Error: ${data.error || res.status}`, '#b23a3a');
+    }
+  } catch (e) {
+    ghSetStatus(`Request failed: ${e.message}`, '#b23a3a');
+  }
+}
+async function loadRocksFromGitHub() {
+  ghSetStatus('Loading from GitHub…');
+  try {
+    const res = await fetch(WORKER_URL, { method: 'GET' });
+    const data = await res.json();
+    if (!res.ok) {
+      ghSetStatus(`Error: ${data.error || res.status}`, '#b23a3a');
+      return;
+    }
+    const rocks = data.rocks || [];
+    rocks.forEach(r => addRock({ initials: r.initials || '', desc: r.desc || '', status: 'NOT DONE' }));
+    ghSetStatus(`Loaded ${rocks.length} rock(s) from GitHub.`, '#1f7a4d');
+  } catch (e) {
+    ghSetStatus(`Failed to load: ${e.message}`, '#b23a3a');
+  }
+}
+
 /* ---------- GENERATE WORD DOC ---------- */
 function esc(s) {
   return (s||'').toString()
