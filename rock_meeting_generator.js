@@ -148,15 +148,26 @@ function addExp(data) {
 /* ---------- SEED WITH TEAM ROSTER (edit this list to add/remove people) ---------- */
 const TEAM_ROSTER = ['Grant', 'Roean', 'Jared', 'Martin', 'Megan', 'Caleb', 'Cyndi'];
 
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function seed() {
-  // Personal Rock Reviews — one blank card per team member, ready to fill in
-  TEAM_ROSTER.forEach(name => addPerson({ name }));
+  const order = shuffle(TEAM_ROSTER);
+
+  // Personal Rock Reviews — one blank card per team member, in a fresh random order each load
+  order.forEach(name => addPerson({ name }));
 
   // Recurring meeting-level to-do
   addTodo('To Do (GT): Communicate meeting minutes from Rock Setting to team');
 
-  // Expectations and Rating — one blank row per team member
-  TEAM_ROSTER.forEach(name => addExp({ name }));
+  // Expectations and Rating — same random order, one blank row per team member
+  order.forEach(name => addExp({ name }));
 }
 seed();
 
