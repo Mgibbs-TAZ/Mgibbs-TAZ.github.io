@@ -198,6 +198,17 @@
     <input type="text" id="reviewedLine" value="Reviewed Personal Rocks Q2">
   </div>
 
+  <!-- GITHUB SYNC -->
+  <div class="card">
+    <h2>GitHub Sync (optional)</h2>
+    <div class="hint" style="margin-bottom:10px;">Stores the ROCK carryover file directly in this tool's GitHub repo — no password or token needed here, that's handled by a small backend proxy.</div>
+    <div style="display:flex;gap:8px;">
+      <button class="small-btn" onclick="saveRocksToGitHub()">☁ Save ROCKs to GitHub</button>
+      <button class="small-btn" onclick="loadRocksFromGitHub()">☁ Load ROCKs from GitHub</button>
+    </div>
+    <div id="ghStatus" class="hint" style="margin-top:8px;"></div>
+  </div>
+
   <!-- PEOPLE -->
   <div class="card">
     <h2>Personal Rock Reviews</h2>
