@@ -91,28 +91,20 @@ function addActionLine(btn) {
   const wrap = btn.previousElementSibling;
   addActionLineTo(wrap, '');
 }
-function addActionLineTo(wrap, value, isRock, rockInitials, rockDesc) {
+function addActionLineTo(wrap, value, isRock) {
   const line = el(`
     <div class="action-item-wrap" style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;background:#fff;">
       <div class="action-line" style="margin-bottom:0;">
-        <input type="text" class="p-action-item" placeholder='e.g. ROCK #2 (CS): Scorecard: 4 weeks with < 10 7 day old SD tickets' value="${(value||'').replace(/"/g,'&quot;')}">
+        <input type="text" class="p-action-item" placeholder='e.g. Scorecard: 4 weeks with < 10 7 day old SD tickets' value="${(value||'').replace(/"/g,'&quot;')}">
         <button class="small-btn remove-btn" onclick="this.closest('.action-item-wrap').remove()">×</button>
       </div>
       <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0 0 0;cursor:pointer;">
-        <input type="checkbox" class="p-action-isrock" style="width:auto;" ${isRock?'checked':''} onchange="toggleRockFields(this)">
+        <input type="checkbox" class="p-action-isrock" style="width:auto;" ${isRock?'checked':''}>
         Carry forward as a new ROCK for next meeting
       </label>
-      <div class="rock-carry-fields" style="display:${isRock?'flex':'none'};gap:8px;margin-top:6px;">
-        <input type="text" class="p-action-rock-initials" placeholder="Initials (e.g. MS)" style="flex:0 0 120px;" value="${rockInitials||''}">
-        <input type="text" class="p-action-rock-desc" placeholder="Rock description for next meeting" value="${rockDesc||''}">
-      </div>
     </div>
   `);
   wrap.appendChild(line);
-}
-function toggleRockFields(checkbox) {
-  const fields = checkbox.closest('.action-item-wrap').querySelector('.rock-carry-fields');
-  fields.style.display = checkbox.checked ? 'flex' : 'none';
 }
 
 /* ---------- TODOS ---------- */
@@ -149,9 +141,33 @@ function addExp(data) {
 const TEAM_ROSTERS = {
   'Service Desk': ['Grant', 'Roean', 'Jared', 'Martin', 'Megan', 'Caleb', 'Cyndi'],
   'Sales': ['Tavis', 'Grant', 'Audrey', 'Sam', 'Aubrey'],
-  'Field': ['Grant', 'Tony', 'Dan', 'Dustin', 'Zach', 'Steve']
+  'Field': ['Grant', 'Tony', 'Dan', 'Dustin', 'Zach', 'Steve', 'Seth']
 };
 const DEPT_ABBREV = { 'Service Desk': 'SD', 'Sales': 'Sales', 'Field': 'FT' };
+
+/* ---------- INITIALS PER PERSON (edit any of these to correct them) ---------- */
+const PERSON_INITIALS = {
+  'Grant': 'GT',
+  'Roean': 'RN',
+  'Jared': 'JC',
+  'Martin': 'MS',
+  'Megan': 'MG',
+  'Caleb': 'CF',
+  'Cyndi': 'CS',
+  'Tavis': 'TP',
+  'Audrey': 'AS',
+  'Sam': 'SE',
+  'Aubrey': 'AF',
+  'Tony': 'TY',
+  'Dan': 'DG',
+  'Dustin': 'DL',
+  'Zach': 'ZP',
+  'Steve': 'SC',
+  'Seth': 'SF'
+};
+function getInitials(name) {
+  return PERSON_INITIALS[name] || (name || '').trim().slice(0, 2).toUpperCase();
+}
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -256,15 +272,32 @@ new MutationObserver(recalcAvgRating).observe(document.getElementById('expList')
 recalcAvgRating();
 
 /* ---------- ROCK CARRYOVER (export from this meeting / import into next) ---------- */
-function exportRocksForNextMeeting() {
-  const rocks = [];
+function buildRockNumberMap() {
+  const map = new Map();
+  let n = 0;
   document.querySelectorAll('.action-item-wrap').forEach(wrap => {
-    const checked = wrap.querySelector('.p-action-isrock').checked;
-    if (!checked) return;
-    const initials = wrap.querySelector('.p-action-rock-initials').value.trim();
-    const desc = wrap.querySelector('.p-action-rock-desc').value.trim();
-    if (initials || desc) rocks.push({ initials, desc });
+    const checkbox = wrap.querySelector('.p-action-isrock');
+    if (!checkbox.checked) return;
+    const text = wrap.querySelector('.p-action-item').value.trim();
+    if (!text) return;
+    const personBlock = wrap.closest('.item-block');
+    const personName = personBlock ? personBlock.querySelector('.p-name').value.trim() : '';
+    n++;
+    map.set(wrap, { number: n, initials: getInitials(personName) });
   });
+  return map;
+}
+function collectCheckedRocks() {
+  const map = buildRockNumberMap();
+  const rocks = [];
+  map.forEach((info, wrap) => {
+    const text = wrap.querySelector('.p-action-item').value.trim();
+    rocks.push({ initials: info.initials, desc: text, rockNumber: info.number });
+  });
+  return rocks;
+}
+function exportRocksForNextMeeting() {
+  const rocks = collectCheckedRocks();
   if (!rocks.length) {
     alert('No action items are checked as "Carry forward as a new ROCK" yet. Check the ones you want carried over, then export again.');
     return;
@@ -303,14 +336,7 @@ function ghSetStatus(msg, color) {
   el.style.color = color || 'var(--muted)';
 }
 async function saveRocksToGitHub() {
-  const rocks = [];
-  document.querySelectorAll('.action-item-wrap').forEach(wrap => {
-    const checked = wrap.querySelector('.p-action-isrock').checked;
-    if (!checked) return;
-    const initials = wrap.querySelector('.p-action-rock-initials').value.trim();
-    const desc = wrap.querySelector('.p-action-rock-desc').value.trim();
-    if (initials || desc) rocks.push({ initials, desc });
-  });
+  const rocks = collectCheckedRocks();
   if (!rocks.length) {
     ghSetStatus('No action items are checked as "Carry forward as a new ROCK" yet.', '#b23a3a');
     return;
@@ -378,6 +404,7 @@ function generateDoc() {
   const rockLabel = document.getElementById('companyRockLabel').value;
   const rockPct = document.getElementById('companyRockPct').value;
   const reviewedLine = document.getElementById('reviewedLine').value;
+  const rockNumberMap = buildRockNumberMap();
 
   let html = '';
   html += `<p style="text-align:center;font-weight:bold;font-size:14pt;margin-bottom:0;">${esc(title)}</p>`;
@@ -409,7 +436,12 @@ function generateDoc() {
     const notWorking = block.querySelector('.p-notWorking').value;
     const expect = block.querySelector('.p-expect').value;
     const rock = block.querySelector('.p-rock').value;
-    const actions = Array.from(block.querySelectorAll('.p-action-item')).map(i=>i.value).filter(Boolean);
+    const actions = Array.from(block.querySelectorAll('.action-item-wrap')).map(wrap => {
+      const text = wrap.querySelector('.p-action-item').value.trim();
+      if (!text) return '';
+      const info = rockNumberMap.get(wrap);
+      return info ? `ROCK #${info.number} (${info.initials}): ${text}` : text;
+    }).filter(Boolean);
 
     html += `<p style="font-weight:bold;margin-top:14px;margin-bottom:2px;">${esc(name)}:</p>`;
     html += `<p style="margin:0 0 2px 0;">- Good news: Personal: ${esc(goodPersonal)}, Professional: ${esc(goodProf)}</p>`;
