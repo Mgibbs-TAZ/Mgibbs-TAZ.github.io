@@ -112,11 +112,18 @@
 
 <div class="wrap" id="mainContent">
   <h1>ROCK Setting Meeting Minutes Generator</h1>
-  <p class="subtitle">Fill in the fields below, then click Generate to download a Word document formatted like your standard meeting minutes.</p>
+  <p class="subtitle">Fill in the fields below, then click Generate to download a Word document formatted like your standard meeting minutes. — <a href="/dashboard">View Dashboard</a></p>
 
   <!-- META -->
   <div class="card">
     <h2>Meeting Info</h2>
+    <label>Department</label>
+    <select id="metaDepartment" onchange="onDepartmentChange()">
+      <option value="Service Desk">Service Desk</option>
+      <option value="Sales">Sales</option>
+      <option value="Field">Field</option>
+    </select>
+    <div class="hint">Changing this swaps in that team's roster below and labels the generated document.</div>
     <label>Meeting Title</label>
     <input type="text" id="metaTitle" value="Service Desk – Q3 2026 Rock Setting Meeting 7/22/2026">
     <div class="row">
