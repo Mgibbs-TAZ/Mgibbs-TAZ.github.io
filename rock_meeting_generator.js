@@ -33,9 +33,23 @@ function addRock(data) {
           </select>
         </div>
       </div>
-      <div class="rock-followup-wrap" style="display:${data.status==='NOT DONE'?'block':'none'};">
-        <label>New Rock (follow-up line, e.g. "ROCK #1 (MS) Schedule 2 x FF Trainings")</label>
-        <input type="text" class="rock-followup" value="${data.followup||''}">
+      <div class="rock-followup-wrap carry-item" style="display:${data.status==='NOT DONE'?'block':'none'};border:1px solid var(--border);border-radius:6px;padding:8px;margin-top:8px;background:#fafbfc;">
+        <label style="margin:0 0 3px 0;">Follow-up line (what should happen with this next)</label>
+        <input type="text" class="rock-followup carry-text" placeholder='e.g. Schedule 2 x FF Trainings' value="${data.followup||''}">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+            <input type="checkbox" class="carry-isrock" style="width:auto;" ${data.followupIsRock?'checked':''} onchange="toggleOwnerVisibility(this)">
+            ROCK for next meeting
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+            <input type="checkbox" class="carry-istodo" style="width:auto;" ${data.followupIsTodo?'checked':''} onchange="toggleOwnerVisibility(this)">
+            To Do (L10)
+          </label>
+        </div>
+        <div class="carry-owner-wrap" style="display:${(data.followupIsRock||data.followupIsTodo)?'block':'none'};margin-top:6px;">
+          <label style="margin:0 0 3px 0;">Owner</label>
+          <select class="carry-owner">${rosterOptions(data.followupOwner || data.initials || '')}</select>
+        </div>
       </div>
     </div>
   `);
@@ -95,40 +109,43 @@ function addActionLineTo(wrap, value, isRock, isTodo, ownerInitials) {
   const personBlock = wrap.closest('.item-block');
   const personName = personBlock ? personBlock.querySelector('.p-name').value : '';
   const defaultOwner = ownerInitials || getInitials(personName);
-  const roster = TEAM_ROSTERS[currentDepartment()] || [];
-  const options = roster.map(n => {
-    const abbr = getInitials(n);
-    return `<option value="${abbr}" ${abbr === defaultOwner ? 'selected' : ''}>${n} (${abbr})</option>`;
-  }).join('');
+  const options = rosterOptions(defaultOwner);
   const line = el(`
-    <div class="action-item-wrap" style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;background:#fff;">
+    <div class="action-item-wrap carry-item" style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;background:#fff;">
       <div class="action-line" style="margin-bottom:0;">
-        <input type="text" class="p-action-item" placeholder='e.g. Scorecard: 4 weeks with < 10 7 day old SD tickets' value="${(value||'').replace(/"/g,'&quot;')}">
+        <input type="text" class="p-action-item carry-text" placeholder='e.g. Scorecard: 4 weeks with < 10 7 day old SD tickets' value="${(value||'').replace(/"/g,'&quot;')}">
         <button class="small-btn remove-btn" onclick="this.closest('.action-item-wrap').remove()">×</button>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
-          <input type="checkbox" class="p-action-isrock" style="width:auto;" ${isRock?'checked':''} onchange="toggleOwnerVisibility(this)">
+          <input type="checkbox" class="p-action-isrock carry-isrock" style="width:auto;" ${isRock?'checked':''} onchange="toggleOwnerVisibility(this)">
           ROCK for next meeting
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
-          <input type="checkbox" class="p-action-istodo" style="width:auto;" ${isTodo?'checked':''} onchange="toggleOwnerVisibility(this)">
+          <input type="checkbox" class="p-action-istodo carry-istodo" style="width:auto;" ${isTodo?'checked':''} onchange="toggleOwnerVisibility(this)">
           To Do (L10)
         </label>
       </div>
-      <div class="action-owner-wrap" style="display:${(isRock||isTodo)?'block':'none'};margin-top:6px;">
+      <div class="action-owner-wrap carry-owner-wrap" style="display:${(isRock||isTodo)?'block':'none'};margin-top:6px;">
         <label style="margin:0 0 3px 0;">Owner</label>
-        <select class="p-action-owner">${options}</select>
+        <select class="p-action-owner carry-owner">${options}</select>
       </div>
     </div>
   `);
   wrap.appendChild(line);
 }
+function rosterOptions(defaultOwner) {
+  const roster = TEAM_ROSTERS[currentDepartment()] || [];
+  return roster.map(n => {
+    const abbr = getInitials(n);
+    return `<option value="${abbr}" ${abbr === defaultOwner ? 'selected' : ''}>${n} (${abbr})</option>`;
+  }).join('');
+}
 function toggleOwnerVisibility(checkbox) {
-  const wrap = checkbox.closest('.action-item-wrap');
-  const rock = wrap.querySelector('.p-action-isrock').checked;
-  const todo = wrap.querySelector('.p-action-istodo').checked;
-  wrap.querySelector('.action-owner-wrap').style.display = (rock || todo) ? 'block' : 'none';
+  const wrap = checkbox.closest('.carry-item');
+  const rock = wrap.querySelector('.carry-isrock').checked;
+  const todo = wrap.querySelector('.carry-istodo').checked;
+  wrap.querySelector('.carry-owner-wrap').style.display = (rock || todo) ? 'block' : 'none';
 }
 
 /* ---------- TODOS ---------- */
@@ -299,12 +316,12 @@ recalcAvgRating();
 function buildRockNumberMap() {
   const map = new Map();
   let n = 0;
-  document.querySelectorAll('.action-item-wrap').forEach(wrap => {
-    const checkbox = wrap.querySelector('.p-action-isrock');
-    if (!checkbox.checked) return;
-    const text = wrap.querySelector('.p-action-item').value.trim();
+  document.querySelectorAll('.carry-item').forEach(wrap => {
+    const checkbox = wrap.querySelector('.carry-isrock');
+    if (!checkbox || !checkbox.checked) return;
+    const text = wrap.querySelector('.carry-text').value.trim();
     if (!text) return;
-    const owner = wrap.querySelector('.p-action-owner');
+    const owner = wrap.querySelector('.carry-owner');
     n++;
     map.set(wrap, { number: n, initials: owner ? owner.value : '' });
   });
@@ -314,7 +331,7 @@ function collectCheckedRocks() {
   const map = buildRockNumberMap();
   const rocks = [];
   map.forEach((info, wrap) => {
-    const text = wrap.querySelector('.p-action-item').value.trim();
+    const text = wrap.querySelector('.carry-text').value.trim();
     rocks.push({ initials: info.initials, desc: text, rockNumber: info.number });
   });
   return rocks;
@@ -442,8 +459,19 @@ function generateDoc() {
     const status = block.querySelector('.rock-status').value;
     html += `<p style="margin:0 0 2px 0;">(${esc(initials)}) - ${esc(desc)} - ${esc(status)}</p>`;
     if (status === 'NOT DONE') {
-      const fu = block.querySelector('.rock-followup').value;
-      if (fu) html += `<p style="margin:0 0 2px 0;margin-left:24px;">${esc(fu)}</p>`;
+      const fuWrap = block.querySelector('.rock-followup-wrap');
+      const fuText = fuWrap.querySelector('.carry-text').value.trim();
+      if (fuText) {
+        const rockInfo = rockNumberMap.get(fuWrap);
+        let line = fuText;
+        if (rockInfo) {
+          line = `ROCK #${rockInfo.number} (${rockInfo.initials}): ${fuText}`;
+        } else if (fuWrap.querySelector('.carry-istodo').checked) {
+          const owner = fuWrap.querySelector('.carry-owner');
+          line = `To Do (${owner ? owner.value : ''}): ${fuText}`;
+        }
+        html += `<p style="margin:0 0 2px 0;margin-left:24px;">${esc(line)}</p>`;
+      }
     }
   });
 
