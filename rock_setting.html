@@ -173,17 +173,6 @@
     <input type="text" id="reviewedLine" value="Reviewed Personal Rocks Q2">
   </div>
 
-  <!-- CLOUD SYNC -->
-  <div class="card">
-    <h2>Cloud Sync (optional)</h2>
-    <div class="hint" style="margin-bottom:10px;">Stores the ROCK carryover list in a private cloud store — nothing here is publicly readable.</div>
-    <div style="display:flex;gap:8px;">
-      <button class="small-btn" onclick="saveRocksToGitHub()">☁ Save ROCKs to Cloud</button>
-      <button class="small-btn" onclick="loadRocksFromGitHub()">☁ Load ROCKs from Cloud</button>
-    </div>
-    <div id="ghStatus" class="hint" style="margin-top:8px;"></div>
-  </div>
-
   <!-- PEOPLE -->
   <div class="card">
     <h2>Personal Rock Reviews</h2>
@@ -218,7 +207,10 @@
   <div class="generate-bar">
     <button id="generateBtn" onclick="generateDoc()">⬇ Generate Word Document</button>
     <button class="small-btn" style="padding:12px 20px;font-size:13px;margin-left:8px;" onclick="exportRocksForNextMeeting()">⬇ Export ROCKs for Next Meeting</button>
-    <div class="hint">Generate downloads the meeting minutes. Export ROCKs saves a small file of everything checked "Carry forward as a new ROCK" — upload it next time via Import at the top of the ROCK Completion section.</div>
+    <button class="small-btn" style="padding:12px 20px;font-size:13px;margin-left:8px;" onclick="saveRocksToGitHub()">☁ Save ROCKs to Cloud</button>
+    <button class="small-btn" style="padding:12px 20px;font-size:13px;margin-left:8px;" onclick="loadRocksFromGitHub()">☁ Load ROCKs from Cloud</button>
+    <div class="hint">Generate downloads the meeting minutes. Export ROCKs saves a small file of everything checked "ROCK for next meeting" — upload it next time via Import at the top of the ROCK Completion section. Cloud Save/Load use private storage, keyed by department and date.</div>
+    <div id="ghStatus" class="hint" style="margin-top:4px;"></div>
   </div>
 </div>
 
