@@ -145,8 +145,13 @@ function addExp(data) {
   document.getElementById('expList').appendChild(node);
 }
 
-/* ---------- SEED WITH TEAM ROSTER (edit this list to add/remove people) ---------- */
-const TEAM_ROSTER = ['Grant', 'Roean', 'Jared', 'Martin', 'Megan', 'Caleb', 'Cyndi'];
+/* ---------- TEAM ROSTERS PER DEPARTMENT (edit these lists to add/remove people) ---------- */
+const TEAM_ROSTERS = {
+  'Service Desk': ['Grant', 'Roean', 'Jared', 'Martin', 'Megan', 'Caleb', 'Cyndi'],
+  'Sales': ['Tavis', 'Grant', 'Audrey', 'Sam', 'Aubrey'],
+  'Field': ['Grant', 'Tony', 'Dan', 'Dustin', 'Zach', 'Steve']
+};
+const DEPT_ABBREV = { 'Service Desk': 'SD', 'Sales': 'Sales', 'Field': 'FT' };
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -157,8 +162,12 @@ function shuffle(arr) {
   return a;
 }
 
+function currentDepartment() {
+  return document.getElementById('metaDepartment').value;
+}
+
 function seed() {
-  const order = shuffle(TEAM_ROSTER);
+  const order = shuffle(TEAM_ROSTERS[currentDepartment()]);
 
   // Personal Rock Reviews — one blank card per team member, in a fresh random order each load
   order.forEach(name => addPerson({ name }));
@@ -170,6 +179,15 @@ function seed() {
   order.forEach(name => addExp({ name }));
 }
 seed();
+
+function onDepartmentChange() {
+  // Clear out the previous department's people/expectations, then reseed fresh
+  document.getElementById('peopleList').innerHTML = '';
+  document.getElementById('expList').innerHTML = '';
+  const order = shuffle(TEAM_ROSTERS[currentDepartment()]);
+  order.forEach(name => addPerson({ name }));
+  order.forEach(name => addExp({ name }));
+}
 
 /* ---------- MEETING TIMER ---------- */
 let timerSeconds = 0, timerInterval = null, timerRunning = false;
@@ -297,16 +315,22 @@ async function saveRocksToGitHub() {
     ghSetStatus('No action items are checked as "Carry forward as a new ROCK" yet.', '#b23a3a');
     return;
   }
+  const department = currentDepartment();
+  const stats = {
+    companyRockPct: document.getElementById('companyRockPct').value,
+    avgRating: document.getElementById('metaAvgRating').value,
+    title: document.getElementById('metaTitle').value
+  };
   ghSetStatus('Saving…');
   try {
     const res = await fetch('/api/rocks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rocks })
+      body: JSON.stringify({ department, deptAbbrev: DEPT_ABBREV[department] || department, rocks, stats })
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      ghSetStatus(`Saved ${data.count} rock(s).`, '#1f7a4d');
+      ghSetStatus(`Saved ${data.count} rock(s) for ${department} (${data.key}).`, '#1f7a4d');
     } else {
       ghSetStatus(`Error: ${data.error || res.status}`, '#b23a3a');
     }
@@ -315,9 +339,11 @@ async function saveRocksToGitHub() {
   }
 }
 async function loadRocksFromGitHub() {
+  const department = currentDepartment();
+  const abbrev = DEPT_ABBREV[department] || department;
   ghSetStatus('Loading…');
   try {
-    const res = await fetch('/api/rocks', { method: 'GET' });
+    const res = await fetch(`/api/rocks?dept=${encodeURIComponent(abbrev)}`, { method: 'GET' });
     const data = await res.json();
     if (!res.ok) {
       ghSetStatus(`Error: ${data.error || res.status}`, '#b23a3a');
@@ -325,7 +351,9 @@ async function loadRocksFromGitHub() {
     }
     const rocks = data.rocks || [];
     rocks.forEach(r => addRock({ initials: r.initials || '', desc: r.desc || '', status: 'NOT DONE' }));
-    ghSetStatus(`Loaded ${rocks.length} rock(s).`, '#1f7a4d');
+    ghSetStatus(rocks.length
+      ? `Loaded ${rocks.length} rock(s) for ${department} from ${data.period || 'last saved meeting'}.`
+      : `No saved rocks found yet for ${department}.`, '#1f7a4d');
   } catch (e) {
     ghSetStatus(`Failed to load: ${e.message}`, '#b23a3a');
   }
@@ -342,6 +370,7 @@ function linesToParas(text, indent) {
 }
 
 function generateDoc() {
+  const department = currentDepartment();
   const title = document.getElementById('metaTitle').value;
   const timeObj = document.getElementById('metaTimeObj').value;
   const timeActual = document.getElementById('metaTimeActual').value;
@@ -352,6 +381,7 @@ function generateDoc() {
 
   let html = '';
   html += `<p style="text-align:center;font-weight:bold;font-size:14pt;margin-bottom:0;">${esc(title)}</p>`;
+  html += `<p style="text-align:center;margin:2px 0;">Department: ${esc(department)}</p>`;
   html += `<p style="text-align:center;margin:2px 0;">Time objective: ${esc(timeObj)} Actual time: ${esc(timeActual)}</p>`;
   html += `<p style="text-align:center;margin:2px 0 16px 0;">Average rating: ${esc(avgRating)}</p>`;
 
@@ -438,7 +468,7 @@ p { margin: 0 0 4px 0; }
   const a = document.createElement('a');
   const safeTitle = (title || 'Rock_Meeting_Minutes').replace(/[^\w\- ]/g,'').trim().replace(/\s+/g,'_');
   a.href = url;
-  a.download = safeTitle + '.doc';
+  a.download = `${DEPT_ABBREV[department] || department}_${safeTitle}.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
