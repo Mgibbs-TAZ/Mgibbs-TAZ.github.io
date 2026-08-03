@@ -91,20 +91,44 @@ function addActionLine(btn) {
   const wrap = btn.previousElementSibling;
   addActionLineTo(wrap, '');
 }
-function addActionLineTo(wrap, value, isRock) {
+function addActionLineTo(wrap, value, isRock, isTodo, ownerInitials) {
+  const personBlock = wrap.closest('.item-block');
+  const personName = personBlock ? personBlock.querySelector('.p-name').value : '';
+  const defaultOwner = ownerInitials || getInitials(personName);
+  const roster = TEAM_ROSTERS[currentDepartment()] || [];
+  const options = roster.map(n => {
+    const abbr = getInitials(n);
+    return `<option value="${abbr}" ${abbr === defaultOwner ? 'selected' : ''}>${n} (${abbr})</option>`;
+  }).join('');
   const line = el(`
     <div class="action-item-wrap" style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;background:#fff;">
       <div class="action-line" style="margin-bottom:0;">
         <input type="text" class="p-action-item" placeholder='e.g. Scorecard: 4 weeks with < 10 7 day old SD tickets' value="${(value||'').replace(/"/g,'&quot;')}">
         <button class="small-btn remove-btn" onclick="this.closest('.action-item-wrap').remove()">×</button>
       </div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0 0 0;cursor:pointer;">
-        <input type="checkbox" class="p-action-isrock" style="width:auto;" ${isRock?'checked':''}>
-        Carry forward as a new ROCK for next meeting
-      </label>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+          <input type="checkbox" class="p-action-isrock" style="width:auto;" ${isRock?'checked':''} onchange="toggleOwnerVisibility(this)">
+          ROCK for next meeting
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+          <input type="checkbox" class="p-action-istodo" style="width:auto;" ${isTodo?'checked':''} onchange="toggleOwnerVisibility(this)">
+          To Do (L10)
+        </label>
+      </div>
+      <div class="action-owner-wrap" style="display:${(isRock||isTodo)?'block':'none'};margin-top:6px;">
+        <label style="margin:0 0 3px 0;">Owner</label>
+        <select class="p-action-owner">${options}</select>
+      </div>
     </div>
   `);
   wrap.appendChild(line);
+}
+function toggleOwnerVisibility(checkbox) {
+  const wrap = checkbox.closest('.action-item-wrap');
+  const rock = wrap.querySelector('.p-action-isrock').checked;
+  const todo = wrap.querySelector('.p-action-istodo').checked;
+  wrap.querySelector('.action-owner-wrap').style.display = (rock || todo) ? 'block' : 'none';
 }
 
 /* ---------- TODOS ---------- */
@@ -280,10 +304,9 @@ function buildRockNumberMap() {
     if (!checkbox.checked) return;
     const text = wrap.querySelector('.p-action-item').value.trim();
     if (!text) return;
-    const personBlock = wrap.closest('.item-block');
-    const personName = personBlock ? personBlock.querySelector('.p-name').value.trim() : '';
+    const owner = wrap.querySelector('.p-action-owner');
     n++;
-    map.set(wrap, { number: n, initials: getInitials(personName) });
+    map.set(wrap, { number: n, initials: owner ? owner.value : '' });
   });
   return map;
 }
@@ -439,8 +462,14 @@ function generateDoc() {
     const actions = Array.from(block.querySelectorAll('.action-item-wrap')).map(wrap => {
       const text = wrap.querySelector('.p-action-item').value.trim();
       if (!text) return '';
-      const info = rockNumberMap.get(wrap);
-      return info ? `ROCK #${info.number} (${info.initials}): ${text}` : text;
+      const rockInfo = rockNumberMap.get(wrap);
+      if (rockInfo) return `ROCK #${rockInfo.number} (${rockInfo.initials}): ${text}`;
+      const isTodo = wrap.querySelector('.p-action-istodo').checked;
+      if (isTodo) {
+        const owner = wrap.querySelector('.p-action-owner');
+        return `To Do (${owner ? owner.value : ''}): ${text}`;
+      }
+      return text;
     }).filter(Boolean);
 
     html += `<p style="font-weight:bold;margin-top:14px;margin-bottom:2px;">${esc(name)}:</p>`;
