@@ -278,10 +278,7 @@ function importRocks(event) {
   event.target.value = '';
 }
 
-/* ---------- GITHUB SYNC (via backend proxy — no token needed here) ---------- */
-// ---- Set this once you've deployed rocks-sync-worker.js to Cloudflare ----
-const WORKER_URL = 'https://yellow-scene-192b.mgibbs-291.workers.dev';
-
+/* ---------- CLOUD SYNC (via same Worker that serves this page — private KV storage) ---------- */
 function ghSetStatus(msg, color) {
   const el = document.getElementById('ghStatus');
   el.textContent = msg;
@@ -300,16 +297,16 @@ async function saveRocksToGitHub() {
     ghSetStatus('No action items are checked as "Carry forward as a new ROCK" yet.', '#b23a3a');
     return;
   }
-  ghSetStatus('Saving to GitHub…');
+  ghSetStatus('Saving…');
   try {
-    const res = await fetch(WORKER_URL, {
+    const res = await fetch('/api/rocks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rocks })
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      ghSetStatus(`Saved ${data.count} rock(s) to GitHub.`, '#1f7a4d');
+      ghSetStatus(`Saved ${data.count} rock(s).`, '#1f7a4d');
     } else {
       ghSetStatus(`Error: ${data.error || res.status}`, '#b23a3a');
     }
@@ -318,9 +315,9 @@ async function saveRocksToGitHub() {
   }
 }
 async function loadRocksFromGitHub() {
-  ghSetStatus('Loading from GitHub…');
+  ghSetStatus('Loading…');
   try {
-    const res = await fetch(WORKER_URL, { method: 'GET' });
+    const res = await fetch('/api/rocks', { method: 'GET' });
     const data = await res.json();
     if (!res.ok) {
       ghSetStatus(`Error: ${data.error || res.status}`, '#b23a3a');
@@ -328,7 +325,7 @@ async function loadRocksFromGitHub() {
     }
     const rocks = data.rocks || [];
     rocks.forEach(r => addRock({ initials: r.initials || '', desc: r.desc || '', status: 'NOT DONE' }));
-    ghSetStatus(`Loaded ${rocks.length} rock(s) from GitHub.`, '#1f7a4d');
+    ghSetStatus(`Loaded ${rocks.length} rock(s).`, '#1f7a4d');
   } catch (e) {
     ghSetStatus(`Failed to load: ${e.message}`, '#b23a3a');
   }
