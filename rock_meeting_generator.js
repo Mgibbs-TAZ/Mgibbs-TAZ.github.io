@@ -134,13 +134,35 @@ function addActionLineTo(wrap, value, isRock, isTodo, ownerInitials) {
   `);
   wrap.appendChild(line);
 }
-function rosterOptions(defaultOwner) {
-  const roster = TEAM_ROSTERS[currentDepartment()] || [];
-  return roster.map(n => {
-    const abbr = getInitials(n);
-    return `<option value="${abbr}" ${abbr === defaultOwner ? 'selected' : ''}>${n} (${abbr})</option>`;
-  }).join('');
+function currentPeopleNames() {
+  // Everyone with a card on the page right now (includes anyone added by hand)
+  const names = Array.from(document.querySelectorAll('#peopleList .p-name'))
+    .map(i => i.value.trim()).filter(Boolean);
+  if (names.length) return names;
+  return TEAM_ROSTERS[currentDepartment()] || [];
 }
+function rosterOptions(defaultOwner) {
+  const seen = new Set();
+  let html = '';
+  currentPeopleNames().forEach(n => {
+    const abbr = getInitials(n);
+    if (seen.has(abbr)) return;
+    seen.add(abbr);
+    html += `<option value="${abbr}" ${abbr === defaultOwner ? 'selected' : ''}>${n} (${abbr})</option>`;
+  });
+  if (defaultOwner && !seen.has(defaultOwner)) {
+    html += `<option value="${defaultOwner}" selected>${defaultOwner}</option>`;
+  }
+  return html;
+}
+// Owner dropdowns are built when an item is created, so refresh them each time
+// they are opened -- picks up anyone added or renamed since.
+document.addEventListener('mousedown', e => {
+  const sel = e.target;
+  if (!(sel && sel.matches && sel.matches('select.carry-owner'))) return;
+  const current = sel.value;
+  sel.innerHTML = rosterOptions(current);
+});
 function toggleOwnerVisibility(checkbox) {
   const wrap = checkbox.closest('.carry-item');
   const rock = wrap.querySelector('.carry-isrock').checked;
@@ -180,9 +202,9 @@ function addExp(data) {
 
 /* ---------- TEAM ROSTERS PER DEPARTMENT (edit these lists to add/remove people) ---------- */
 const TEAM_ROSTERS = {
-  'Service Desk': ['Grant', 'Roean', 'Jared', 'Martin', 'Megan', 'Caleb', 'Cyndi'],
+  'Service Desk': ['Grant', 'Roean', 'Martin', 'Megan', 'Caleb', 'Cyndi', 'Tom', 'Kasydy'],
   'Sales': ['Tavis', 'Grant', 'Audrey', 'Sam', 'Aubrey'],
-  'Field': ['Grant', 'Tony', 'Dan', 'Dustin', 'Zach', 'Steve', 'Seth']
+  'Field': ['Grant', 'Tony', 'Dan', 'Dustin', 'Zach', 'Steve', 'Seth', 'Tim']
 };
 const DEPT_ABBREV = { 'Service Desk': 'SD', 'Sales': 'Sales', 'Field': 'FT' };
 
@@ -195,6 +217,9 @@ const PERSON_INITIALS = {
   'Megan': 'MG',
   'Caleb': 'CF',
   'Cyndi': 'CS',
+  'Tom': 'TL',
+  'Kasydy': 'KB',
+  'Tim': 'TQ',
   'Tavis': 'TP',
   'Audrey': 'AS',
   'Sam': 'SE',
@@ -207,7 +232,11 @@ const PERSON_INITIALS = {
   'Seth': 'SF'
 };
 function getInitials(name) {
-  return PERSON_INITIALS[name] || (name || '').trim().slice(0, 2).toUpperCase();
+  const n = (name || '').trim();
+  if (PERSON_INITIALS[n]) return PERSON_INITIALS[n];
+  const parts = n.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return n.slice(0, 2).toUpperCase();
 }
 
 function shuffle(arr) {
